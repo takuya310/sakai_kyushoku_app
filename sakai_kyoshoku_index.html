@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>堺区・西区 学校給食カレンダー</title>
+<meta name="description" content="堺市（堺区・西区）の学校給食予定献立表を、日付ごとに確認できるカレンダーアプリです。">
+<style>
+  :root{
+    --blue:       #036FB1;
+    --blue-dark:  #02436B;
+    --blue-mid:   #0A93E7;
+    --blue-tint:  #F0F8FC;
+    --blue-line:  #C3DEEF;
+    --ink:        #232733;
+    --ink-soft:   #5B6072;
+    --paper:      #FFFFFF;
+    --milk:       #E4EFF7;
+    --today-ring: #C7451B;
+    --warn:       #C55A11;
+    --warn-bg:    #FBEAE0;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 2px rgba(2,67,107,0.06), 0 6px 20px rgba(2,67,107,0.08);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--blue-tint);
+    color: var(--ink);
+    font-family: "Yu Gothic UI","Yu Gothic","Hiragino Sans","Hiragino Kaku Gothic ProN","BIZ UDPGothic","Noto Sans JP",sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- ヘッダー ---------- */
+  header.app-header {
+    background: linear-gradient(155deg, var(--blue) 0%, var(--blue-dark) 100%);
+    color: #fff;
+    padding: 28px 20px 84px;
+    position: relative;
+    overflow: hidden;
+  }
+  header.app-header::before{
+    content: ""; position: absolute; right: -60px; top: -60px;
+    width: 260px; height: 260px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.14);
+  }
+  header.app-header::after{
+    content: ""; position: absolute; right: 10px; top: 40px;
+    width: 170px; height: 170px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .header-inner{ max-width: 640px; margin: 0 auto; position: relative; z-index: 1; }
+  .eyebrow{
+    font-size: 12.5px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.72); margin: 0 0 6px; font-weight: 600;
+  }
+  h1{ margin: 0; font-size: 24px; font-weight: 700; line-height: 1.4; }
+  .ward-badge{
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+    padding: 5px 12px; background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28); border-radius: 999px;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* ---------- 本文レイアウト ---------- */
+  main{
+    max-width: 640px; margin: -56px auto 0;
+    padding: 0 16px 48px; position: relative; z-index: 2;
+  }
+
+  /* ---------- 献立ヒーローカード ---------- */
+  .menu-hero{
+    background: var(--paper); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow); padding: 24px 24px 26px; margin-bottom: 22px;
+  }
+  .hero-head{ display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .stamp{
+    flex: 0 0 auto; width: 60px; height: 60px; border-radius: 50%;
+    border: 2.5px solid var(--blue); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: var(--blue);
+    line-height: 1; transform: rotate(-4deg);
+  }
+  .stamp .stamp-label{ font-size: 9px; font-weight: 700; letter-spacing: 0.08em; }
+  .stamp .stamp-day{ font-size: 22px; font-weight: 800; margin-top: 1px; }
+  .stamp.is-today{ border-color: var(--today-ring); color: var(--today-ring); }
+
+  .hero-meta{ flex: 1 1 auto; min-width: 0; }
+  .hero-caption{
+    font-size: 12.5px; color: var(--ink-soft); font-weight: 700;
+    letter-spacing: 0.04em; margin: 0 0 3px;
+  }
+  .hero-date{
+    font-size: 20px; font-weight: 800; color: var(--blue-dark); margin: 0;
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  }
+  .hero-date .weekday-tag{
+    font-size: 12px; font-weight: 700; color: var(--blue);
+    background: var(--blue-tint); padding: 3px 10px; border-radius: 999px;
+  }
+
+  .menu-list{ list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  .menu-list li{
+    background: var(--blue-tint); border: 1px solid var(--blue-line);
+    color: var(--blue-dark); font-size: 16.5px; font-weight: 700;
+    padding: 10px 18px; border-radius: 999px;
+  }
+  .menu-list li.milk{ background: var(--milk); border-color: #A9CFE8; color: var(--blue); }
+
+  .hero-empty{ text-align: center; color: var(--ink-soft); font-size: 14px; padding: 20px 10px 8px; }
+
+  /* ---------- 状態表示（読み込み中・エラー） ---------- */
+  .state-box{
+    background: var(--paper); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow); padding: 28px 24px; margin-bottom: 22px;
+    text-align: center; color: var(--ink-soft); font-size: 14px;
+  }
+  .state-box.error{ text-align: left; }
+  .state-box h2{
+    margin: 0 0 10px; font-size: 16px; color: var(--warn); font-weight: 700;
+  }
+  .state-box .hint{
+    background: var(--warn-bg); border-radius: var(--radius-sm);
+    padding: 12px 14px; margin-top: 12px; font-size: 13px;
+    color: var(--ink); line-height: 1.8; text-align: left;
+  }
+  .state-box code{
+    background: #fff; border: 1px solid var(--blue-line);
+    padding: 1px 6px; border-radius: 4px; font-size: 12.5px;
+  }
+  .pickup{ margin-top: 14px; }
+  .pickup label{
+    display: inline-block; background: var(--blue); color: #fff;
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: 13.5px; font-weight: 700; cursor: pointer;
+  }
+  .pickup input{ display: none; }
+
+  .skipped{
+    background: var(--warn-bg); border: 1px solid var(--warn);
+    color: var(--ink); border-radius: var(--radius-sm);
+    padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.7;
+  }
+  .skipped strong{ color: var(--warn); }
+
+  /* ---------- カレンダー ---------- */
+  .calendar-section{ max-width: 300px; margin: 0 auto; }
+  .calendar-label{
+    text-align: center; font-size: 11.5px; font-weight: 700;
+    color: var(--ink-soft); letter-spacing: 0.1em; margin: 0 0 8px;
+  }
+  .month-nav{ display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 8px; }
+  .month-nav .month-label{
+    font-size: 13.5px; font-weight: 700; color: var(--blue-dark);
+    min-width: 84px; text-align: center;
+  }
+  .month-nav button{
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 1px solid var(--blue-line); background: var(--paper);
+    color: var(--blue); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .month-nav button:hover:not(:disabled){ background: var(--blue-tint); }
+  .month-nav button:active:not(:disabled){ transform: scale(0.94); }
+  .month-nav button:disabled{ opacity: 0.3; cursor: default; }
+  .month-nav button:focus-visible{ outline: 2px solid var(--blue-mid); outline-offset: 2px; }
+
+  .calendar{
+    background: var(--paper); border: 1px solid var(--blue-line);
+    border-radius: var(--radius-md); padding: 8px 6px 9px;
+  }
+  .weekday-row{ display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
+  .weekday-row span{
+    text-align: center; font-size: 9.5px; font-weight: 700;
+    color: var(--ink-soft); padding-bottom: 3px;
+  }
+  .weekday-row span.sun{ color: #B23A3A; }
+  .weekday-row span.sat{ color: var(--blue-mid); }
+
+  .day-grid{ display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .day-cell{
+    aspect-ratio: 1 / 1; border: none; background: transparent;
+    border-radius: 6px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-family: inherit;
+    color: var(--ink); cursor: pointer; position: relative; padding: 0;
+  }
+  .day-cell.blank{ cursor: default; }
+  .day-cell .num{ font-size: 11px; font-weight: 600; }
+  .day-cell .dot{ width: 3px; height: 3px; border-radius: 50%; background: var(--blue-mid); margin-top: 2px; }
+  .day-cell.has-menu:hover{ background: var(--blue-tint); }
+  .day-cell.has-menu:focus-visible{ outline: 2px solid var(--blue-mid); outline-offset: 1px; }
+  .day-cell.no-menu .num{ color: #C6CAD6; }
+  .day-cell.no-menu .dot{ visibility: hidden; }
+  .day-cell.is-today .num{ color: var(--today-ring); }
+  .day-cell.is-today::after{
+    content: ""; position: absolute; inset: 1px;
+    border: 1.3px solid var(--today-ring); border-radius: 6px;
+  }
+  .day-cell.is-selected{ background: var(--blue); }
+  .day-cell.is-selected .num{ color: #fff; }
+  .day-cell.is-selected .dot{ background: #fff; }
+  .day-cell.is-selected.is-today::after{ border-color: #fff; }
+
+  footer{
+    max-width: 640px; margin: 24px auto 0; padding: 0 20px;
+    font-size: 12px; color: var(--ink-soft); text-align: center; line-height: 1.8;
+  }
+
+  @media (max-width: 380px){
+    h1{ font-size: 21px; }
+    .hero-date{ font-size: 18px; }
+    .menu-list li{ font-size: 15px; padding: 9px 15px; }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <p class="eyebrow">SAKAI SCHOOL LUNCH CALENDAR</p>
+    <h1>学校給食予定献立表</h1>
+    <span class="ward-badge" id="wardBadge">堺区・西区</span>
+  </div>
+</header>
+
+<main>
+  <div id="app">
+    <div class="state-box" id="loading">献立データを読み込んでいます…</div>
+  </div>
+</main>
+
+<footer>
+  データ出典：堺市教育委員会「学校給食予定献立表（堺区・西区）」<br>
+  ★予定献立は内容を一部変更する場合があります。最新情報は学校からのお知らせをご確認ください。
+</footer>
+
+<script>
+// ============================================================
+//  献立データは、同じフォルダにある kyushoku.csv から読み込みます。
+//  献立を追加・修正したいときは、このファイルではなく
+//  kyushoku.csv を編集してください。
+//
+//  CSVの書き方（1行が1日ぶん）
+//    日付,曜日,区,献立
+//    2026-07-01,水,堺区・西区,"ごはん,カレー,サラダ,牛乳"
+//
+//  ・日付は 2026-07-01 の形式で書いてください（必須）
+//  ・献立は全体を " " で囲み、料理名を , で区切ります（必須）
+//  ・曜日は空欄でもかまいません（日付から自動で計算します）
+//  ・区も空欄でかまいません
+// ============================================================
+
+const CSV_FILE = "kyushoku.csv";
+const WD = ["日","月","火","水","木","金","土"];
+const DEFAULT_WARD = "堺区・西区";
+
+// ---------- CSVの文字コードを判定して文字列にする ----------
+function decodeCsv(buffer){
+  // まずUTF-8として厳密に読む。失敗したらShift_JISとして読み直す
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch (e) {
+    try {
+      return new TextDecoder("shift_jis").decode(buffer);
+    } catch (e2) {
+      return new TextDecoder("utf-8").decode(buffer); // 最後の手段
+    }
+  }
+}
+
+// ---------- CSVを行と列に分解する（" "で囲まれたカンマに対応） ----------
+function parseCsv(text){
+  text = text.replace(/^\uFEFF/, ""); // BOMを除去
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQuotes){
+      if (c === '"'){
+        if (text[i+1] === '"'){ field += '"'; i++; }
+        else { inQuotes = false; }
+      } else { field += c; }
+    } else {
+      if (c === '"'){ inQuotes = true; }
+      else if (c === ','){ row.push(field); field = ""; }
+      else if (c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; }
+      else if (c === '\r'){ /* 無視 */ }
+      else { field += c; }
+    }
+  }
+  if (field !== "" || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ""));
+}
+
+// ---------- 行データを献立オブジェクトに変換する ----------
+function buildData(rows){
+  if (!rows.length) return { data: [], skipped: ["CSVが空です"] };
+
+  const header = rows[0].map(h => h.trim());
+  const idx = {
+    date:    header.findIndex(h => h === "日付"),
+    weekday: header.findIndex(h => h === "曜日"),
+    ward:    header.findIndex(h => h === "区"),
+    menu:    header.findIndex(h => h === "献立"),
+  };
+  if (idx.date < 0 || idx.menu < 0){
+    return { data: [], skipped: ['1行目に「日付」と「献立」の見出しが必要です'] };
+  }
+
+  const data = [], skipped = [];
+  for (let i = 1; i < rows.length; i++){
+    const r = rows[i];
+    const dateStr = (r[idx.date] || "").trim();
+    const menuStr = (r[idx.menu] || "").trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)){
+      skipped.push(`${i+1}行目：日付「${dateStr || "空欄"}」の書き方が違います`);
+      continue;
+    }
+    const d = new Date(dateStr + "T00:00:00");
+    if (isNaN(d.getTime())){
+      skipped.push(`${i+1}行目：「${dateStr}」は存在しない日付です`);
+      continue;
+    }
+    if (!menuStr){
+      skipped.push(`${i+1}行目：献立が空欄です`);
+      continue;
+    }
+
+    const menu = menuStr.split(",").map(s => s.trim()).filter(Boolean);
+    let weekday = idx.weekday >= 0 ? (r[idx.weekday] || "").trim() : "";
+    if (!weekday) weekday = WD[d.getDay()];          // 空欄なら日付から計算
+    let ward = idx.ward >= 0 ? (r[idx.ward] || "").trim() : "";
+    if (!ward) ward = DEFAULT_WARD;
+
+    data.push({ date: dateStr, weekday, ward, menu });
+  }
+
+  data.sort((a, b) => a.date.localeCompare(b.date));
+  return { data, skipped };
+}
+
+// ---------- 画面の描画 ----------
+const appEl = document.getElementById("app");
+
+function todayStr(){
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`;
+}
+
+function render(data, skipped){
+  if (!data.length){
+    showError("献立データが1件も読み取れませんでした", skipped);
+    return;
+  }
+
+  const byDate = new Map(data.map(d => [d.date, d]));
+  const TODAY = todayStr();
+  const MONTHS = Array.from(new Set(data.map(d => d.date.slice(0,7)))).sort();
+  const firstInMonth = ym => (data.find(d => d.date.startsWith(ym)) || {}).date || null;
+
+  let monthIdx = Math.max(0, MONTHS.indexOf(TODAY.slice(0,7)));
+  let selected = byDate.has(TODAY) ? TODAY : firstInMonth(MONTHS[monthIdx]);
+
+  // 区が全行同じならヘッダーのバッジに反映
+  const wards = Array.from(new Set(data.map(d => d.ward)));
+  if (wards.length === 1) document.getElementById("wardBadge").textContent = wards[0];
+
+  appEl.innerHTML = `
+    ${skipped.length ? `<div class="skipped"><strong>${skipped.length}行を読み飛ばしました。</strong><br>${skipped.slice(0,5).join("<br>")}${skipped.length>5 ? "<br>…ほか" + (skipped.length-5) + "行" : ""}</div>` : ""}
+    <section class="menu-hero" id="menuHero" aria-live="polite"></section>
+    <section class="calendar-section">
+      <p class="calendar-label">日付を選ぶ</p>
+      <div class="month-nav">
+        <button type="button" id="prevMonth" aria-label="前の月">‹</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button type="button" id="nextMonth" aria-label="次の月">›</button>
+      </div>
+      <div class="calendar">
+        <div class="weekday-row">
+          <span class="sun">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span>
+        </div>
+        <div class="day-grid" id="dayGrid" role="grid" aria-label="給食カレンダー"></div>
+      </div>
+    </section>
+  `;
+
+  const heroEl = document.getElementById("menuHero");
+  const gridEl = document.getElementById("dayGrid");
+  const labelEl = document.getElementById("monthLabel");
+  const prevBtn = document.getElementById("prevMonth");
+  const nextBtn = document.getElementById("nextMonth");
+
+  function renderHero(){
+    const entry = selected ? byDate.get(selected) : null;
+    if (!entry){
+      heroEl.innerHTML = `<div class="hero-empty">この月の献立データはありません。</div>`;
+      return;
+    }
+    const t = new Date(entry.date + "T00:00:00");
+    const isToday = entry.date === TODAY;
+    const dateLabel = `${t.getFullYear()}年${t.getMonth()+1}月${t.getDate()}日`;
+    const items = entry.menu.map(item => {
+      const cls = item === "牛乳" ? "milk" : "";
+      return `<li class="${cls}">${escapeHtml(item)}</li>`;
+    }).join("");
+    heroEl.innerHTML = `
+      <div class="hero-head">
+        <div class="stamp ${isToday ? "is-today" : ""}">
+          <span class="stamp-label">${isToday ? "TODAY" : (t.getMonth()+1) + "/" + t.getDate()}</span>
+          <span class="stamp-day">${t.getDate()}</span>
+        </div>
+        <div class="hero-meta">
+          <p class="hero-caption">${isToday ? "本日の献立" : "選択した日の献立"}</p>
+          <p class="hero-date">${dateLabel}<span class="weekday-tag">${escapeHtml(entry.weekday)}曜日</span></p>
+        </div>
+      </div>
+      <ul class="menu-list">${items}</ul>
+    `;
+  }
+
+  function renderCalendar(){
+    const ym = MONTHS[monthIdx];
+    const [year, month] = ym.split("-").map(Number);
+    labelEl.textContent = `${year}年${month}月`;
+    prevBtn.disabled = monthIdx <= 0;
+    nextBtn.disabled = monthIdx >= MONTHS.length - 1;
+
+    const startWd = new Date(year, month-1, 1).getDay();
+    const days = new Date(year, month, 0).getDate();
+    let html = "";
+    for (let i = 0; i < startWd; i++) html += `<div class="day-cell blank" aria-hidden="true"></div>`;
+    for (let day = 1; day <= days; day++){
+      const ds = `${ym}-${String(day).padStart(2,"0")}`;
+      const has = byDate.has(ds);
+      const cls = ["day-cell", has ? "has-menu" : "no-menu"];
+      if (ds === TODAY) cls.push("is-today");
+      if (ds === selected) cls.push("is-selected");
+      html += `<button type="button" class="${cls.join(" ")}" data-date="${ds}" ${has ? "" : 'disabled tabindex="-1"'}
+                 aria-label="${month}月${day}日${has ? "（給食予定あり）" : "（給食予定なし）"}">
+                 <span class="num">${day}</span><span class="dot"></span></button>`;
+    }
+    gridEl.innerHTML = html;
+    gridEl.querySelectorAll(".day-cell.has-menu").forEach(btn => {
+      btn.addEventListener("click", () => {
+        selected = btn.dataset.date;
+        renderCalendar(); renderHero();
+        heroEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  }
+
+  function goMonth(i){
+    monthIdx = i;
+    const ym = MONTHS[monthIdx];
+    if (!selected || !selected.startsWith(ym)) selected = firstInMonth(ym);
+    renderCalendar(); renderHero();
+  }
+  prevBtn.addEventListener("click", () => { if (monthIdx > 0) goMonth(monthIdx - 1); });
+  nextBtn.addEventListener("click", () => { if (monthIdx < MONTHS.length - 1) goMonth(monthIdx + 1); });
+
+  renderCalendar();
+  renderHero();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+function showError(title, details){
+  const isLocal = location.protocol === "file:";
+  appEl.innerHTML = `
+    <div class="state-box error">
+      <h2>${escapeHtml(title)}</h2>
+      ${isLocal ? `
+        <p>このページを<strong>パソコンのファイルから直接開いている</strong>ため、ブラウザのセキュリティ制限でCSVファイルを読み込めません。</p>
+        <div class="hint">
+          これは故障ではありません。<br>
+          GitHubにアップロードして <strong>GitHub Pages</strong> で公開すると、正しく表示されます。<br><br>
+          いま手元で動作を確認したい場合は、下のボタンから <code>${CSV_FILE}</code> を選んでください。
+        </div>
+        <div class="pickup">
+          <label for="csvPicker">CSVファイルを選んで表示する</label>
+          <input type="file" id="csvPicker" accept=".csv,text/csv">
+        </div>
+      ` : `
+        <div class="hint">
+          <strong>${escapeHtml(CSV_FILE)}</strong> が読み込めませんでした。次を確認してください。<br>
+          ・ファイル名が <code>${escapeHtml(CSV_FILE)}</code> になっているか<br>
+          ・<code>index.html</code> と<strong>同じ場所</strong>に置かれているか<br>
+          ・1行目が <code>日付,曜日,区,献立</code> になっているか
+        </div>
+      `}
+      ${details && details.length ? `<div class="hint">${details.slice(0,8).map(escapeHtml).join("<br>")}</div>` : ""}
+    </div>
+  `;
+  const picker = document.getElementById("csvPicker");
+  if (picker){
+    picker.addEventListener("change", e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const { data, skipped } = buildData(parseCsv(decodeCsv(reader.result)));
+        render(data, skipped);
+      };
+      reader.readAsArrayBuffer(f);
+    });
+  }
+}
+
+// ---------- 読み込み開始 ----------
+// 末尾の ?t=... は、CSVを更新したときに古い内容が表示されるのを防ぐためのものです
+fetch(CSV_FILE + "?t=" + Date.now())
+  .then(res => {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.arrayBuffer();
+  })
+  .then(buf => {
+    const { data, skipped } = buildData(parseCsv(decodeCsv(buf)));
+    render(data, skipped);
+  })
+  .catch(err => {
+    console.error(err);
+    showError("献立データ（" + CSV_FILE + "）を読み込めませんでした");
+  });
+</script>
+
+</body>
+</html>
